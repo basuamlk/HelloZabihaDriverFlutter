@@ -1,0 +1,40 @@
+name: hello_zabiha_driver
+description: "HelloZabiha Driver App - Delivery management for drivers"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  provider: ^6.1.2
+
+  # Supabase Backend
+  supabase_flutter: ^2.8.0
+
+  # Location Services
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
+
+  # Maps
+  google_maps_flutter: ^2.10.0
+  url_launcher: ^6.3.1
+
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
