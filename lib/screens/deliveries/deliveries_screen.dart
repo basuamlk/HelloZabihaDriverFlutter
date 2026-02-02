@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../models/delivery.dart';
 import '../../providers/deliveries_provider.dart';
 import '../../services/location_service.dart';
-import '../../widgets/delivery_row.dart';
 import '../../widgets/status_badge.dart';
 import 'delivery_detail_screen.dart';
 
@@ -18,13 +18,12 @@ class DeliveriesScreen extends StatefulWidget {
 }
 
 class _DeliveriesScreenState extends State<DeliveriesScreen> {
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
   final LocationService _locationService = LocationService.instance;
   StreamSubscription<Position>? _positionSubscription;
 
   LatLng? _currentPosition;
-  Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
+  bool _mapReady = false;
 
   @override
   void initState() {
@@ -36,142 +35,34 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
   }
 
   Future<void> _initializeLocation() async {
-    // Get current position
     final position = await _locationService.getCurrentPosition();
     if (position != null && mounted) {
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
       });
-      _updateMapView();
+      _centerOnCurrentPosition();
     }
 
-    // Listen to position updates
     _locationService.startTracking();
     _positionSubscription = _locationService.positionStream.listen((position) {
       if (mounted) {
         setState(() {
           _currentPosition = LatLng(position.latitude, position.longitude);
         });
-        _updateMarkers();
-        _animateToCurrentPosition();
       }
     });
   }
 
-  void _updateMapView() {
-    _updateMarkers();
-    if (_currentPosition != null && _mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(_currentPosition!, 14),
-      );
+  void _centerOnCurrentPosition() {
+    if (_currentPosition != null && _mapReady) {
+      _mapController.move(_currentPosition!, 14);
     }
-  }
-
-  void _animateToCurrentPosition() {
-    if (_currentPosition != null && _mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(_currentPosition!),
-      );
-    }
-  }
-
-  void _updateMarkers() {
-    final deliveries = context.read<DeliveriesProvider>().deliveries;
-    final activeDelivery = _getActiveDelivery(deliveries);
-    final upcomingDeliveries = _getUpcomingDeliveries(deliveries);
-
-    final markers = <Marker>{};
-
-    // Driver marker
-    if (_currentPosition != null) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('driver'),
-          position: _currentPosition!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          infoWindow: const InfoWindow(title: 'You'),
-        ),
-      );
-    }
-
-    // Active delivery marker (green)
-    if (activeDelivery != null &&
-        activeDelivery.deliveryLatitude != null &&
-        activeDelivery.deliveryLongitude != null) {
-      markers.add(
-        Marker(
-          markerId: MarkerId('active_${activeDelivery.id}'),
-          position: LatLng(
-            activeDelivery.deliveryLatitude!,
-            activeDelivery.deliveryLongitude!,
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(
-            title: 'Active: ${activeDelivery.customerName}',
-            snippet: activeDelivery.deliveryAddress,
-          ),
-        ),
-      );
-
-      // Draw route to active delivery
-      _drawRouteToDestination(activeDelivery);
-    }
-
-    // Upcoming delivery markers (orange)
-    for (int i = 0; i < upcomingDeliveries.length; i++) {
-      final delivery = upcomingDeliveries[i];
-      if (delivery.deliveryLatitude != null && delivery.deliveryLongitude != null) {
-        markers.add(
-          Marker(
-            markerId: MarkerId('upcoming_${delivery.id}'),
-            position: LatLng(
-              delivery.deliveryLatitude!,
-              delivery.deliveryLongitude!,
-            ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-            infoWindow: InfoWindow(
-              title: '${i + 1}. ${delivery.customerName}',
-              snippet: delivery.deliveryAddress,
-            ),
-          ),
-        );
-      }
-    }
-
-    setState(() {
-      _markers = markers;
-    });
-  }
-
-  void _drawRouteToDestination(Delivery delivery) {
-    if (_currentPosition == null ||
-        delivery.deliveryLatitude == null ||
-        delivery.deliveryLongitude == null) {
-      return;
-    }
-
-    // Simple straight line for now - can be replaced with actual routing API
-    final polyline = Polyline(
-      polylineId: const PolylineId('route'),
-      points: [
-        _currentPosition!,
-        LatLng(delivery.deliveryLatitude!, delivery.deliveryLongitude!),
-      ],
-      color: Colors.blue,
-      width: 4,
-      patterns: [PatternItem.dash(20), PatternItem.gap(10)],
-    );
-
-    setState(() {
-      _polylines = {polyline};
-    });
   }
 
   Delivery? _getActiveDelivery(List<Delivery> deliveries) {
     try {
       return deliveries.firstWhere((d) => d.status.isActive);
     } catch (_) {
-      // No active delivery, check for assigned
       try {
         return deliveries.firstWhere((d) => d.status == DeliveryStatus.assigned);
       } catch (_) {
@@ -183,22 +74,169 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
   List<Delivery> _getUpcomingDeliveries(List<Delivery> deliveries) {
     final active = _getActiveDelivery(deliveries);
     return deliveries
-        .where((d) =>
-            d.status.isPending &&
-            d.id != active?.id)
+        .where((d) => d.status.isPending && d.id != active?.id)
         .toList();
   }
 
   List<Delivery> _getCompletedDeliveries(List<Delivery> deliveries) {
     return deliveries
-        .where((d) => d.status == DeliveryStatus.completed || d.status == DeliveryStatus.failed)
+        .where((d) =>
+            d.status == DeliveryStatus.completed ||
+            d.status == DeliveryStatus.failed)
         .toList();
+  }
+
+  List<Marker> _buildMarkers(List<Delivery> deliveries) {
+    final markers = <Marker>[];
+    final activeDelivery = _getActiveDelivery(deliveries);
+    final upcomingDeliveries = _getUpcomingDeliveries(deliveries);
+
+    // Driver marker
+    if (_currentPosition != null) {
+      markers.add(
+        Marker(
+          point: _currentPosition!,
+          width: 50,
+          height: 50,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.navigation,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Active delivery marker
+    if (activeDelivery != null &&
+        activeDelivery.deliveryLatitude != null &&
+        activeDelivery.deliveryLongitude != null) {
+      markers.add(
+        Marker(
+          point: LatLng(
+            activeDelivery.deliveryLatitude!,
+            activeDelivery.deliveryLongitude!,
+          ),
+          width: 40,
+          height: 50,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              Container(
+                width: 3,
+                height: 10,
+                color: Colors.green,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Upcoming delivery markers
+    for (int i = 0; i < upcomingDeliveries.length; i++) {
+      final delivery = upcomingDeliveries[i];
+      if (delivery.deliveryLatitude != null &&
+          delivery.deliveryLongitude != null) {
+        markers.add(
+          Marker(
+            point: LatLng(
+              delivery.deliveryLatitude!,
+              delivery.deliveryLongitude!,
+            ),
+            width: 36,
+            height: 36,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '${i + 1}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return markers;
+  }
+
+  List<Polyline> _buildPolylines(List<Delivery> deliveries) {
+    final activeDelivery = _getActiveDelivery(deliveries);
+
+    if (_currentPosition == null ||
+        activeDelivery == null ||
+        activeDelivery.deliveryLatitude == null ||
+        activeDelivery.deliveryLongitude == null) {
+      return [];
+    }
+
+    return [
+      Polyline(
+        points: [
+          _currentPosition!,
+          LatLng(
+            activeDelivery.deliveryLatitude!,
+            activeDelivery.deliveryLongitude!,
+          ),
+        ],
+        color: Colors.blue,
+        strokeWidth: 4,
+        isDotted: true,
+      ),
+    ];
   }
 
   @override
   void dispose() {
     _positionSubscription?.cancel();
-    _mapController?.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
@@ -214,7 +252,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.my_location),
-            onPressed: _animateToCurrentPosition,
+            onPressed: _centerOnCurrentPosition,
             tooltip: 'Center on my location',
           ),
         ],
@@ -229,18 +267,13 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
           final upcomingDeliveries = _getUpcomingDeliveries(provider.deliveries);
           final completedDeliveries = _getCompletedDeliveries(provider.deliveries);
 
-          // Update markers when deliveries change
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _updateMarkers();
-          });
-
           return RefreshIndicator(
             onRefresh: provider.refresh,
             child: CustomScrollView(
               slivers: [
                 // Map Section
                 SliverToBoxAdapter(
-                  child: _buildMapSection(activeDelivery),
+                  child: _buildMapSection(provider.deliveries, activeDelivery),
                 ),
 
                 // Active Delivery Section
@@ -291,7 +324,8 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final delivery = completedDeliveries[index];
-                        return _buildDeliveryItem(delivery, null, isCompleted: true);
+                        return _buildDeliveryItem(delivery, null,
+                            isCompleted: true);
                       },
                       childCount: completedDeliveries.length,
                     ),
@@ -304,7 +338,6 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
                     child: _buildEmptyState(),
                   ),
 
-                // Bottom padding
                 const SliverToBoxAdapter(
                   child: SizedBox(height: 20),
                 ),
@@ -316,7 +349,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
     );
   }
 
-  Widget _buildMapSection(Delivery? activeDelivery) {
+  Widget _buildMapSection(List<Delivery> deliveries, Delivery? activeDelivery) {
     return Container(
       height: 280,
       margin: const EdgeInsets.all(16),
@@ -334,21 +367,31 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentPosition ?? const LatLng(37.7749, -122.4194),
-                zoom: 14,
+            FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentPosition ?? const LatLng(37.7749, -122.4194),
+                initialZoom: 14,
+                onMapReady: () {
+                  setState(() => _mapReady = true);
+                  _centerOnCurrentPosition();
+                },
               ),
-              onMapCreated: (controller) {
-                _mapController = controller;
-                _updateMapView();
-              },
-              markers: _markers,
-              polylines: _polylines,
-              myLocationEnabled: false, // Using custom marker instead
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              mapToolbarEnabled: false,
+              children: [
+                // OpenStreetMap tiles (free!)
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.hellozabiha.driver',
+                ),
+                // Route polylines
+                PolylineLayer(
+                  polylines: _buildPolylines(deliveries),
+                ),
+                // Markers
+                MarkerLayer(
+                  markers: _buildMarkers(deliveries),
+                ),
+              ],
             ),
             // Destination info overlay
             if (activeDelivery != null)
@@ -357,7 +400,8 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
                 left: 12,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -427,6 +471,22 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
                   ),
                 ),
               ),
+            // OSM attribution
+            Positioned(
+              bottom: activeDelivery != null ? 56 : 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  '© OpenStreetMap',
+                  style: TextStyle(fontSize: 9, color: Colors.grey),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -553,7 +613,8 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
     );
   }
 
-  Widget _buildDeliveryItem(Delivery delivery, int? orderNumber, {bool isCompleted = false}) {
+  Widget _buildDeliveryItem(Delivery delivery, int? orderNumber,
+      {bool isCompleted = false}) {
     return GestureDetector(
       onTap: () => _navigateToDetail(delivery.id),
       child: Container(
@@ -571,7 +632,6 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
         ),
         child: Row(
           children: [
-            // Order number or status icon
             Container(
               width: 36,
               height: 36,
@@ -698,7 +758,6 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
         builder: (context) => DeliveryDetailScreen(deliveryId: deliveryId),
       ),
     ).then((_) {
-      // Refresh when returning from detail
       context.read<DeliveriesProvider>().refresh();
     });
   }
