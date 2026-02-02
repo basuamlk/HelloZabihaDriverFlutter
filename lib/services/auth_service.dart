@@ -32,4 +32,16 @@ class AuthService {
   Future<User?> getCurrentUser() async {
     return _client.auth.currentUser;
   }
+
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    return await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: name != null ? {'name': name} : null,
+    );
+  }
 }

@@ -77,6 +77,39 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _authService.signUp(
+        email: email,
+        password: password,
+        name: name,
+      );
+      _currentUser = response.user;
+      _isAuthenticated = _currentUser != null;
+      _isLoading = false;
+      notifyListeners();
+      return _isAuthenticated;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'An unexpected error occurred';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     _errorMessage = null;
     notifyListeners();
