@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
+import '../services/driver_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService.instance;
@@ -94,6 +95,15 @@ class AuthProvider extends ChangeNotifier {
       );
       _currentUser = response.user;
       _isAuthenticated = _currentUser != null;
+
+      // Create driver profile in drivers table
+      if (_isAuthenticated) {
+        await DriverService.instance.createDriverProfile(
+          name: name ?? email.split('@').first,
+          email: email,
+        );
+      }
+
       _isLoading = false;
       notifyListeners();
       return _isAuthenticated;

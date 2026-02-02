@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import '../models/delivery.dart';
 import '../services/delivery_service.dart';
+import '../services/driver_service.dart';
 import '../services/location_service.dart';
-import '../services/auth_service.dart';
 
 class HomeProvider extends ChangeNotifier {
   final DeliveryService _deliveryService = DeliveryService.instance;
+  final DriverService _driverService = DriverService.instance;
   final LocationService _locationService = LocationService.instance;
 
   String _driverName = 'Driver';
@@ -39,12 +40,17 @@ class HomeProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Get driver name from auth
-      final user = AuthService.instance.currentUser;
-      if (user != null) {
-        _driverName = user.userMetadata?['name'] as String? ??
-            user.email?.split('@').first ??
-            'Driver';
+      // Get driver profile from database
+      final driver = await _driverService.getCurrentDriver();
+      if (driver != null) {
+        _driverName = driver.name;
+        _isAvailable = driver.isAvailable;
+        _rating = driver.rating ?? 0.0;
+
+        // Sync location tracking with availability
+        if (_isAvailable && !_locationService.isTracking) {
+          _locationService.startTracking();
+        }
       }
 
       // Get all deliveries
@@ -79,37 +85,27 @@ class HomeProvider extends ChangeNotifier {
       // Get recent deliveries (last 5)
       _recentDeliveries = deliveries.take(5).toList();
 
-      // Mock rating for now
-      _rating = 4.8;
-
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _errorMessage = 'Failed to load data';
       _isLoading = false;
-      _loadMockData();
       notifyListeners();
     }
-  }
-
-  void _loadMockData() {
-    _driverName = 'Test Driver';
-    _todayDeliveries = 5;
-    _pendingDeliveries = 3;
-    _todayEarnings = 45.50;
-    _rating = 4.8;
-    _activeDelivery = null;
-    _recentDeliveries = [];
-    _assignedDeliveries = [];
   }
 
   Future<void> refresh() async {
     await loadData();
   }
 
-  void toggleAvailability() {
+  Future<void> toggleAvailability() async {
     _isAvailable = !_isAvailable;
+    notifyListeners();
 
+    // Update in database
+    await _driverService.setAvailability(_isAvailable);
+
+    // Control location tracking
     if (_isAvailable) {
       _locationService.startTracking();
     } else {
