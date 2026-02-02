@@ -228,7 +228,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
         ],
         color: Colors.blue,
         strokeWidth: 4,
-        isDotted: true,
+        pattern: const StrokePattern.dotted(),
       ),
     ];
   }
