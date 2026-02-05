@@ -360,7 +360,7 @@ class DriverService {
 
       // Upload to Supabase Storage with explicit content type
       await _client.storage
-          .from('profile-photos')
+          .from('avatars')
           .uploadBinary(
             filePath,
             bytes,
@@ -372,7 +372,7 @@ class DriverService {
 
       // Get public URL
       final photoUrl = _client.storage
-          .from('profile-photos')
+          .from('avatars')
           .getPublicUrl(filePath);
 
       print('uploadProfilePhoto: Got URL $photoUrl');
@@ -426,7 +426,7 @@ class DriverService {
         final pathSegments = uri.pathSegments;
         if (pathSegments.length >= 2) {
           final filePath = pathSegments.sublist(pathSegments.length - 3).join('/');
-          await _client.storage.from('profile-photos').remove([filePath]);
+          await _client.storage.from('avatars').remove([filePath]);
         }
       }
 
