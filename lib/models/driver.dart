@@ -113,6 +113,7 @@ class Driver {
   final String name;
   final String email;
   final String phone;
+  final String? profilePhotoUrl;
 
   // Vehicle Information
   final VehicleType? vehicleType;
@@ -147,6 +148,7 @@ class Driver {
     required this.name,
     required this.email,
     required this.phone,
+    this.profilePhotoUrl,
     this.vehicleType,
     this.vehicleModel,
     this.licensePlate,
@@ -201,6 +203,7 @@ class Driver {
       name: json['name'] as String,
       email: json['email'] as String,
       phone: json['phone'] as String? ?? '',
+      profilePhotoUrl: json['profile_photo_url'] as String?,
       vehicleType: json['vehicle_type'] != null
           ? VehicleType.fromString(json['vehicle_type'] as String?)
           : null,
@@ -230,6 +233,7 @@ class Driver {
       'name': name,
       'email': email,
       'phone': phone,
+      'profile_photo_url': profilePhotoUrl,
       'vehicle_type': vehicleType?.value,
       'vehicle_model': vehicleModel,
       'license_plate': licensePlate,
@@ -256,6 +260,7 @@ class Driver {
     String? name,
     String? email,
     String? phone,
+    String? profilePhotoUrl,
     VehicleType? vehicleType,
     String? vehicleModel,
     String? licensePlate,
@@ -280,6 +285,7 @@ class Driver {
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       vehicleType: vehicleType ?? this.vehicleType,
       vehicleModel: vehicleModel ?? this.vehicleModel,
       licensePlate: licensePlate ?? this.licensePlate,

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/driver.dart';
 import '../models/delivery.dart';
@@ -250,5 +251,61 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> refresh() async {
     await loadProfile();
+  }
+
+  /// Upload profile photo
+  Future<bool> uploadProfilePhoto(File photo) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final photoUrl = await _driverService.uploadProfilePhoto(photo);
+
+      if (photoUrl != null && _driver != null) {
+        _driver = _driver!.copyWith(profilePhotoUrl: photoUrl);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to upload photo';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to upload photo';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Delete profile photo
+  Future<bool> deleteProfilePhoto() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _driverService.deleteProfilePhoto();
+
+      if (success && _driver != null) {
+        _driver = _driver!.copyWith(profilePhotoUrl: null);
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to delete photo';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to delete photo';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 }

@@ -10,6 +10,8 @@ import 'providers/connectivity_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/earnings_provider.dart';
 import 'providers/messaging_provider.dart';
+import 'providers/analytics_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_tab_screen.dart';
 import 'screens/splash_screen.dart';
@@ -38,12 +40,20 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => EarningsProvider()),
         ChangeNotifierProvider(create: (_) => MessagingProvider()),
+        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'HelloZabiha Driver',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.themeData,
-        home: const SplashScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'HelloZabiha Driver',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.themeData,
+            darkTheme: AppTheme.darkThemeData,
+            themeMode: themeProvider.themeMode,
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }

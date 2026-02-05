@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/driver.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -7,6 +9,9 @@ import '../../theme/app_theme.dart';
 import 'edit_profile_screen.dart';
 import '../earnings/earnings_screen.dart';
 import '../history/delivery_history_screen.dart';
+import '../support/help_center_screen.dart';
+import '../analytics/analytics_screen.dart';
+import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -180,10 +185,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                     _MenuItem(
+                      icon: Icons.analytics_outlined,
+                      title: 'Analytics',
+                      subtitle: 'Performance metrics and trends',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                        );
+                      },
+                    ),
+                    _MenuItem(
                       icon: Icons.help_outline,
                       title: 'Help Center',
                       subtitle: 'FAQs, Contact Support',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HelpCenterScreen()),
+                        );
+                      },
+                    ),
+                    _MenuItem(
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                      subtitle: 'Theme, preferences',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        );
+                      },
                     ),
                   ]),
 
@@ -216,8 +248,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final provider = context.read<ProfileProvider>();
+    final hasExistingPhoto = provider.driver?.profilePhotoUrl != null;
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingM),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt, color: AppTheme.primaryGreen),
+                title: const Text('Take Photo'),
+                onTap: () => Navigator.pop(context, 'camera'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppTheme.primaryGreen),
+                title: const Text('Choose from Gallery'),
+                onTap: () => Navigator.pop(context, 'gallery'),
+              ),
+              if (hasExistingPhoto)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: AppTheme.error),
+                  title: const Text('Remove Photo'),
+                  onTap: () => Navigator.pop(context, 'remove'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (result == null || !mounted) return;
+
+    if (result == 'remove') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Remove Photo'),
+          content: const Text('Are you sure you want to remove your profile photo?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+              child: const Text('Remove'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm == true && mounted) {
+        await provider.deleteProfilePhoto();
+      }
+      return;
+    }
+
+    final source = result == 'camera' ? ImageSource.camera : ImageSource.gallery;
+    final image = await picker.pickImage(
+      source: source,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+
+    if (image != null && mounted) {
+      await provider.uploadProfilePhoto(File(image.path));
+    }
+  }
+
   Widget _buildProfileHeader(Driver driver) {
     final initial = driver.name.isNotEmpty ? driver.name[0].toUpperCase() : 'D';
+    final hasPhoto = driver.profilePhotoUrl != null;
 
     return Container(
       width: double.infinity,
@@ -225,22 +337,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
       color: AppTheme.primaryGreen,
       child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: _pickAndUploadPhoto,
+            child: Stack(
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 3,
+                    ),
+                    image: hasPhoto
+                        ? DecorationImage(
+                            image: NetworkImage(driver.profilePhotoUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: hasPhoto
+                      ? null
+                      : Center(
+                          child: Text(
+                            initial,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
-              ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 16,
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppTheme.spacingM),

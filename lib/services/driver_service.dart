@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/driver.dart';
 import 'supabase_service.dart';
@@ -334,6 +335,73 @@ class DriverService {
           .toList();
     } catch (e) {
       return [];
+    }
+  }
+
+  /// Upload profile photo and update driver record
+  Future<String?> uploadProfilePhoto(File photo) async {
+    final userId = AuthService.instance.currentUser?.id;
+    if (userId == null) return null;
+
+    try {
+      final fileName = 'profile_$userId\_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final filePath = 'drivers/$userId/$fileName';
+
+      // Upload to Supabase Storage
+      await _client.storage
+          .from('profile-photos')
+          .upload(filePath, photo);
+
+      // Get public URL
+      final photoUrl = _client.storage
+          .from('profile-photos')
+          .getPublicUrl(filePath);
+
+      // Update driver record with photo URL
+      await _client
+          .from('drivers')
+          .update({
+            'profile_photo_url': photoUrl,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      return photoUrl;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Delete profile photo
+  Future<bool> deleteProfilePhoto() async {
+    final userId = AuthService.instance.currentUser?.id;
+    if (userId == null) return false;
+
+    try {
+      // Get current driver to find photo path
+      final driver = await getCurrentDriver();
+      if (driver?.profilePhotoUrl != null) {
+        // Extract file path from URL and delete from storage
+        final uri = Uri.parse(driver!.profilePhotoUrl!);
+        final pathSegments = uri.pathSegments;
+        if (pathSegments.length >= 2) {
+          final filePath = pathSegments.sublist(pathSegments.length - 3).join('/');
+          await _client.storage.from('profile-photos').remove([filePath]);
+        }
+      }
+
+      // Clear photo URL in driver record
+      await _client
+          .from('drivers')
+          .update({
+            'profile_photo_url': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 }
