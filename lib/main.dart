@@ -9,6 +9,7 @@ import 'providers/notifications_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/earnings_provider.dart';
+import 'providers/messaging_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_tab_screen.dart';
 import 'screens/splash_screen.dart';
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationsProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => OnboardingProvider()),
         ChangeNotifierProvider(create: (_) => EarningsProvider()),
+        ChangeNotifierProvider(create: (_) => MessagingProvider()),
       ],
       child: MaterialApp(
         title: 'HelloZabiha Driver',

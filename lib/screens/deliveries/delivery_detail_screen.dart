@@ -10,6 +10,7 @@ import '../../widgets/delivery_progress.dart';
 import '../../theme/app_theme.dart';
 import 'photo_capture_screen.dart';
 import 'delivery_completion_screen.dart';
+import '../messaging/messaging_screen.dart';
 
 class DeliveryDetailScreen extends StatefulWidget {
   final String deliveryId;
@@ -505,25 +506,10 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                   _delivery!.customerName,
                 ),
                 const SizedBox(height: AppTheme.spacingM),
-                GestureDetector(
-                  onTap: () => _callCustomer(),
-                  child: _buildInfoRow(
-                    Icons.phone,
-                    'Phone',
-                    _delivery!.customerPhone,
-                    trailing: Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingS),
-                      decoration: BoxDecoration(
-                        color: AppTheme.iconBackground,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                      ),
-                      child: const Icon(
-                        Icons.call,
-                        color: AppTheme.primaryGreen,
-                        size: 18,
-                      ),
-                    ),
-                  ),
+                _buildInfoRow(
+                  Icons.phone,
+                  'Phone',
+                  _delivery!.customerPhone,
                 ),
                 const SizedBox(height: AppTheme.spacingM),
                 _buildInfoRow(
@@ -541,10 +527,85 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                     valueColor: Colors.orange,
                   ),
                 ],
+                // Contact buttons
+                const SizedBox(height: AppTheme.spacingM),
+                _buildContactButtons(),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContactButtons() {
+    return Row(
+      children: [
+        // Call button
+        Expanded(
+          child: _buildContactButton(
+            icon: Icons.call,
+            label: 'Call',
+            color: AppTheme.primaryGreen,
+            onTap: _callCustomer,
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingS),
+        // SMS button
+        Expanded(
+          child: _buildContactButton(
+            icon: Icons.sms,
+            label: 'Text',
+            color: Colors.blue,
+            onTap: _sendSMS,
+          ),
+        ),
+        const SizedBox(width: AppTheme.spacingS),
+        // In-app message button
+        Expanded(
+          child: _buildContactButton(
+            icon: Icons.chat,
+            label: 'Message',
+            color: Colors.purple,
+            onTap: _openMessaging,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContactButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppTheme.spacingS,
+        ),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1174,5 +1235,23 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   void _callCustomer() {
     final provider = context.read<DeliveryDetailProvider>();
     provider.callCustomer(_delivery!.customerPhone);
+  }
+
+  void _sendSMS() {
+    final provider = context.read<DeliveryDetailProvider>();
+    // Pre-fill with a helpful message
+    provider.sendSMS(
+      _delivery!.customerPhone,
+      body: "Hi, this is your HelloZabiha driver. ",
+    );
+  }
+
+  void _openMessaging() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MessagingScreen(delivery: _delivery!),
+      ),
+    );
   }
 }

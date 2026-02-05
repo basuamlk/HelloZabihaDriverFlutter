@@ -219,6 +219,21 @@ class DeliveryDetailProvider extends ChangeNotifier {
     }
   }
 
+  /// Send SMS to customer
+  Future<void> sendSMS(String phoneNumber, {String? body}) async {
+    Uri uri;
+    if (body != null && body.isNotEmpty) {
+      final encodedBody = Uri.encodeComponent(body);
+      uri = Uri.parse('sms:$phoneNumber?body=$encodedBody');
+    } else {
+      uri = Uri.parse('sms:$phoneNumber');
+    }
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
   Future<void> openGoogleMaps(double? lat, double? lon, String address) async {
     Uri uri;
     if (lat != null && lon != null) {
