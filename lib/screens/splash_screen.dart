@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
+import '../services/dev_mode_service.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 
@@ -51,6 +52,9 @@ class _SplashScreenState extends State<SplashScreen>
       // Initialize notifications
       setState(() => _statusMessage = 'Setting up notifications...');
       await NotificationService.instance.initialize();
+
+      // Initialize dev mode service
+      await DevModeService.instance.initialize();
 
       // Brief pause for branding
       await Future.delayed(const Duration(milliseconds: 500));
