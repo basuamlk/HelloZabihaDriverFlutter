@@ -409,7 +409,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(height: AppTheme.spacingM),
           SizedBox(
-            height: 150,
+            height: 160,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: stats.map((stat) {
