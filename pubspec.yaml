@@ -38,6 +38,9 @@ dependencies:
   signature: ^5.5.0
   path_provider: ^2.1.5
 
+  # Deep Linking
+  app_links: ^6.4.1
+
   # Notifications
   flutter_local_notifications: ^18.0.1
   vibration: ^2.0.1

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/app_notification.dart';
 import '../../providers/notifications_provider.dart';
 import '../../theme/app_theme.dart';
+import '../deliveries/delivery_detail_screen.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -145,11 +146,10 @@ class NotificationsScreen extends StatelessWidget {
 
     // Navigate to delivery if applicable
     if (notification.deliveryId != null) {
-      // TODO: Navigate to delivery detail screen
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Navigate to delivery: ${notification.deliveryId}'),
-          duration: const Duration(seconds: 2),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DeliveryDetailScreen(deliveryId: notification.deliveryId!),
         ),
       );
     }

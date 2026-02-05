@@ -16,7 +16,11 @@ import 'screens/auth/login_screen.dart';
 import 'screens/main_tab_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'services/deep_link_service.dart';
 import 'theme/app_theme.dart';
+
+/// Global navigator key for deep link navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +52,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'HelloZabiha Driver',
             debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
             theme: AppTheme.themeData,
             darkTheme: AppTheme.darkThemeData,
             themeMode: themeProvider.themeMode,
@@ -69,11 +74,20 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   bool _checkingOnboarding = true;
   bool _needsOnboarding = false;
+  bool _deepLinkInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeDeepLinks();
     _checkOnboardingStatus();
+  }
+
+  Future<void> _initializeDeepLinks() async {
+    if (!_deepLinkInitialized) {
+      await DeepLinkService.instance.initialize(navigatorKey);
+      _deepLinkInitialized = true;
+    }
   }
 
   Future<void> _checkOnboardingStatus() async {
@@ -125,6 +139,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
               child: CircularProgressIndicator(),
             ),
           );
+        }
+
+        // Process pending deep links after authentication and onboarding
+        if (!_needsOnboarding && DeepLinkService.instance.hasPendingDeepLink) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            DeepLinkService.instance.processPendingDeepLink();
+          });
         }
 
         return Stack(
