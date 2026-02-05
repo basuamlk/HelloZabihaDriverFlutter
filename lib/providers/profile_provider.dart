@@ -3,10 +3,12 @@ import '../models/driver.dart';
 import '../models/delivery.dart';
 import '../services/driver_service.dart';
 import '../services/delivery_service.dart';
+import '../services/auth_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final DriverService _driverService = DriverService.instance;
   final DeliveryService _deliveryService = DeliveryService.instance;
+  final AuthService _authService = AuthService.instance;
 
   Driver? _driver;
   int _weeklyDeliveries = 0;
@@ -28,6 +30,19 @@ class ProfileProvider extends ChangeNotifier {
     try {
       // Get driver profile from drivers table
       _driver = await _driverService.getCurrentDriver();
+
+      // Create profile if it doesn't exist
+      if (_driver == null) {
+        final user = _authService.currentUser;
+        if (user != null) {
+          _driver = await _driverService.createDriverProfile(
+            name: user.userMetadata?['name'] as String? ??
+                user.email?.split('@').first ??
+                'Driver',
+            email: user.email ?? '',
+          );
+        }
+      }
 
       if (_driver != null) {
         // Get deliveries for statistics
@@ -69,13 +84,22 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateProfile({
+  /// Update full driver profile with all fields
+  Future<bool> updateFullProfile({
     String? name,
     String? phone,
-    String? vehicleType,
+    VehicleType? vehicleType,
+    String? vehicleModel,
     String? licensePlate,
+    int? vehicleYear,
+    double? capacityCubicFeet,
+    double? maxWeightLbs,
+    int? maxDeliveriesPerRun,
+    bool? hasRefrigeration,
+    bool? hasCooler,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -83,19 +107,144 @@ class ProfileProvider extends ChangeNotifier {
         name: name,
         phone: phone,
         vehicleType: vehicleType,
+        vehicleModel: vehicleModel,
         licensePlate: licensePlate,
+        vehicleYear: vehicleYear,
+        capacityCubicFeet: capacityCubicFeet,
+        maxWeightLbs: maxWeightLbs,
+        maxDeliveriesPerRun: maxDeliveriesPerRun,
+        hasRefrigeration: hasRefrigeration,
+        hasCooler: hasCooler,
       );
 
       if (updated != null) {
         _driver = updated;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to update profile';
+        _isLoading = false;
+        notifyListeners();
+        return false;
       }
-
-      _isLoading = false;
-      notifyListeners();
     } catch (e) {
       _errorMessage = 'Failed to update profile';
       _isLoading = false;
       notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update personal info only
+  Future<bool> updatePersonalInfo({
+    String? name,
+    String? phone,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _driverService.updatePersonalInfo(
+        name: name,
+        phone: phone,
+      );
+
+      if (updated != null) {
+        _driver = updated;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to update personal info';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update personal info';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update vehicle info only
+  Future<bool> updateVehicleInfo({
+    VehicleType? vehicleType,
+    String? vehicleModel,
+    String? licensePlate,
+    int? vehicleYear,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _driverService.updateVehicleInfo(
+        vehicleType: vehicleType,
+        vehicleModel: vehicleModel,
+        licensePlate: licensePlate,
+        vehicleYear: vehicleYear,
+      );
+
+      if (updated != null) {
+        _driver = updated;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to update vehicle info';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update vehicle info';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update capacity settings only
+  Future<bool> updateCapacitySettings({
+    double? capacityCubicFeet,
+    double? maxWeightLbs,
+    int? maxDeliveriesPerRun,
+    bool? hasRefrigeration,
+    bool? hasCooler,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _driverService.updateCapacitySettings(
+        capacityCubicFeet: capacityCubicFeet,
+        maxWeightLbs: maxWeightLbs,
+        maxDeliveriesPerRun: maxDeliveriesPerRun,
+        hasRefrigeration: hasRefrigeration,
+        hasCooler: hasCooler,
+      );
+
+      if (updated != null) {
+        _driver = updated;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = 'Failed to update capacity settings';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update capacity settings';
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
   }
 

@@ -44,4 +44,11 @@ class AuthService {
       data: name != null ? {'name': name} : null,
     );
   }
+
+  Future<void> resetPassword({required String email}) async {
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'io.hellozabiha.driver://reset-password',
+    );
+  }
 }

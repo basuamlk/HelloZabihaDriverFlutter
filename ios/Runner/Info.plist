@@ -54,6 +54,27 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>HelloZabiha Driver needs camera access to take photos for delivery confirmation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>HelloZabiha Driver needs photo library access to select delivery confirmation photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>HelloZabiha Driver needs to save delivery confirmation photos to your library.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>HelloZabiha Driver may need microphone access for video recording.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.hellozabiha.driver</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>io.hellozabiha.driver</string>
+		</dict>
 	</array>
 </dict>
 </plist>

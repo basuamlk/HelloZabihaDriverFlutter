@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../models/driver.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme/app_theme.dart';
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,20 +22,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  void _navigateToEditProfile(Driver driver) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditProfileScreen(driver: driver),
+      ),
+    );
+
+    if (result == true && mounted) {
+      context.read<ProfileProvider>().refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Consumer<ProfileProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading && provider.driver == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+            );
           }
 
           final driver = provider.driver;
@@ -41,63 +56,139 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
 
           return RefreshIndicator(
+            color: AppTheme.primaryGreen,
             onRefresh: provider.refresh,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Profile header
-                  _buildProfileHeader(driver.name, driver.email, driver.rating),
-                  const SizedBox(height: 20),
+                  // Profile Header
+                  _buildProfileHeader(driver),
 
-                  // Statistics
-                  _buildStatisticsSection(
+                  const SizedBox(height: AppTheme.spacingM),
+
+                  // Profile Completion Banner (if incomplete)
+                  if (!driver.isProfileComplete)
+                    _buildCompletionBanner(driver),
+
+                  // Statistics Card
+                  _buildStatisticsCard(
                     driver.totalDeliveries,
                     provider.weeklyDeliveries,
                     provider.monthlyDeliveries,
                   ),
-                  const SizedBox(height: 20),
 
-                  // Vehicle info
-                  _buildInfoSection(
-                    'Vehicle Information',
-                    [
-                      _InfoItem(
-                        icon: Icons.directions_car,
-                        label: 'Vehicle Type',
-                        value: driver.vehicleType ?? 'Not set',
-                      ),
-                      _InfoItem(
-                        icon: Icons.badge,
-                        label: 'License Plate',
-                        value: driver.licensePlate ?? 'Not set',
-                      ),
-                    ],
+                  const SizedBox(height: AppTheme.spacingM),
+
+                  // Menu Items
+                  _buildMenuSection([
+                    _MenuItem(
+                      icon: Icons.person_outline,
+                      title: 'Personal Info',
+                      subtitle: driver.name,
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.phone_outlined,
+                      title: 'Phone',
+                      subtitle: driver.phone.isNotEmpty ? driver.phone : 'Add phone number',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                  ]),
+
+                  const SizedBox(height: AppTheme.spacingM),
+
+                  // Vehicle Info
+                  _buildMenuSection([
+                    _MenuItem(
+                      icon: Icons.directions_car_outlined,
+                      title: 'Vehicle Type',
+                      subtitle: driver.vehicleType?.displayName ?? 'Not configured',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.directions_car,
+                      title: 'Vehicle Model',
+                      subtitle: driver.vehicleModel ?? 'Not set',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.badge_outlined,
+                      title: 'License Plate',
+                      subtitle: driver.licensePlate ?? 'Not set',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                  ]),
+
+                  const SizedBox(height: AppTheme.spacingM),
+
+                  // Capacity Info
+                  _buildMenuSection([
+                    _MenuItem(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Cargo Capacity',
+                      subtitle: '${driver.effectiveCapacity.toStringAsFixed(0)} cu ft',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.fitness_center_outlined,
+                      title: 'Max Weight',
+                      subtitle: '${driver.effectiveMaxWeight.toStringAsFixed(0)} lbs',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.local_shipping_outlined,
+                      title: 'Max Deliveries/Run',
+                      subtitle: '${driver.effectiveMaxDeliveries} deliveries',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                    _MenuItem(
+                      icon: Icons.ac_unit,
+                      title: 'Cold Storage',
+                      subtitle: driver.canHandleRefrigerated
+                          ? (driver.hasRefrigeration ? 'Refrigeration unit' : 'Cooler/Ice chest')
+                          : 'Not available',
+                      onTap: () => _navigateToEditProfile(driver),
+                    ),
+                  ]),
+
+                  const SizedBox(height: AppTheme.spacingM),
+
+                  _buildMenuSection([
+                    _MenuItem(
+                      icon: Icons.history,
+                      title: 'Delivery History',
+                      subtitle: 'View past deliveries',
+                      onTap: () {},
+                    ),
+                    _MenuItem(
+                      icon: Icons.help_outline,
+                      title: 'Help Center',
+                      subtitle: 'FAQs, Contact Support',
+                      onTap: () {},
+                    ),
+                  ]),
+
+                  const SizedBox(height: AppTheme.spacingL),
+
+                  // Sign Out Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+                    child: _buildSignOutButton(),
                   ),
-                  const SizedBox(height: 20),
 
-                  // Contact info
-                  _buildInfoSection(
-                    'Contact Information',
-                    [
-                      _InfoItem(
-                        icon: Icons.phone,
-                        label: 'Phone',
-                        value: driver.phone.isNotEmpty ? driver.phone : 'Not set',
-                      ),
-                      _InfoItem(
-                        icon: Icons.email,
-                        label: 'Email',
-                        value: driver.email,
-                      ),
-                    ],
+                  const SizedBox(height: AppTheme.spacingS),
+
+                  // App Version
+                  const Text(
+                    'App Version 1.0.0',
+                    style: TextStyle(
+                      color: AppTheme.textHint,
+                      fontSize: 12,
+                    ),
                   ),
-                  const SizedBox(height: 32),
 
-                  // Sign out button
-                  _buildSignOutButton(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppTheme.spacingXL),
                 ],
               ),
             ),
@@ -107,31 +198,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(String name, String email, double? rating) {
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'D';
+  Widget _buildProfileHeader(Driver driver) {
+    final initial = driver.name.isNotEmpty ? driver.name[0].toUpperCase() : 'D';
 
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppTheme.spacingL),
+      color: AppTheme.primaryGreen,
       child: Column(
         children: [
           Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.green.shade400, Colors.green.shade600],
-              ),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -145,97 +225,147 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTheme.spacingM),
           Text(
-            name,
+            driver.name,
             style: const TextStyle(
+              color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppTheme.spacingXS),
           Text(
-            email,
+            driver.email,
             style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
               fontSize: 14,
-              color: Colors.grey[600],
             ),
           ),
-          if (rating != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.star, color: Colors.amber, size: 20),
-                const SizedBox(width: 4),
-                Text(
-                  rating.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+          const SizedBox(height: AppTheme.spacingS),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (driver.rating != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingM,
+                    vertical: AppTheme.spacingXS,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        driver.rating!.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: AppTheme.spacingS),
               ],
-            ),
-          ],
+              if (driver.vehicleType != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTheme.spacingM,
+                    vertical: AppTheme.spacingXS,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.directions_car, color: Colors.white, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        driver.vehicleType!.displayName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatisticsSection(
-    int total,
-    int weekly,
-    int monthly,
-  ) {
+  Widget _buildCompletionBanner(Driver driver) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700),
+          const SizedBox(width: AppTheme.spacingM),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Complete Your Profile',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange.shade800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Add vehicle info to receive delivery assignments',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.orange.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => _navigateToEditProfile(driver),
+            child: const Text('Complete'),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildStatisticsCard(int total, int weekly, int monthly) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
+      decoration: AppTheme.cardDecoration,
+      child: Row(
         children: [
-          const Text(
-            'Delivery Statistics',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+          Expanded(
+            child: _buildStatItem('Total', total.toString(), AppTheme.primaryGreen),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem('Total', total.toString(), Colors.green),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.grey[200],
-              ),
-              Expanded(
-                child:
-                    _buildStatItem('This Week', weekly.toString(), Colors.blue),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.grey[200],
-              ),
-              Expanded(
-                child: _buildStatItem(
-                    'This Month', monthly.toString(), Colors.purple),
-              ),
-            ],
+          Container(width: 1, height: 40, color: AppTheme.inputBorder),
+          Expanded(
+            child: _buildStatItem('This Week', weekly.toString(), Colors.blue),
+          ),
+          Container(width: 1, height: 40, color: AppTheme.inputBorder),
+          Expanded(
+            child: _buildStatItem('This Month', monthly.toString(), Colors.purple),
           ),
         ],
       ),
@@ -256,146 +386,162 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: AppTheme.textSecondary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoSection(String title, List<_InfoItem> items) {
+  Widget _buildMenuSection(List<_MenuItem> items) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
+      decoration: AppTheme.cardDecoration,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+        children: items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final isLast = index == items.length - 1;
+
+          return Column(
+            children: [
+              _buildMenuItem(item),
+              if (!isLast)
+                const Divider(height: 1, indent: 72),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(_MenuItem item) {
+    return InkWell(
+      onTap: item.onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: AppTheme.iconContainerDecoration,
+              child: Icon(
+                item.icon,
+                color: AppTheme.primaryGreen,
+                size: 24,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        item.icon,
-                        size: 20,
-                        color: Colors.grey[600],
-                      ),
+            const SizedBox(width: AppTheme.spacingM),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textPrimary,
                     ),
-                    const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          item.value,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
                     ),
-                  ],
-                ),
-              )),
-        ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: AppTheme.textHint,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSignOutButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: Consumer<AuthProvider>(
-        builder: (context, auth, child) {
-          return OutlinedButton.icon(
-            onPressed: auth.isLoading
-                ? null
-                : () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Sign Out'),
-                        content: const Text(
-                            'Are you sure you want to sign out?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: const Text('Sign Out'),
-                          ),
-                        ],
+    return Consumer<AuthProvider>(
+      builder: (context, auth, child) {
+        return InkWell(
+          onTap: auth.isLoading
+              ? null
+              : () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
                       ),
-                    );
+                      title: const Text('Sign Out'),
+                      content: const Text('Are you sure you want to sign out?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.error,
+                          ),
+                          child: const Text('Sign Out'),
+                        ),
+                      ],
+                    ),
+                  );
 
-                    if (confirmed == true) {
-                      await auth.signOut();
-                    }
-                  },
-            icon: const Icon(Icons.logout),
-            label: const Text('Sign Out'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  if (confirmed == true) {
+                    await auth.signOut();
+                  }
+                },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.logout,
+                  color: AppTheme.textSecondary,
+                  size: 20,
+                ),
+                SizedBox(width: AppTheme.spacingS),
+                Text(
+                  'Sign Out',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _InfoItem {
+class _MenuItem {
   final IconData icon;
-  final String label;
-  final String value;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
-  _InfoItem({
+  _MenuItem({
     required this.icon,
-    required this.label,
-    required this.value,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
   });
 }

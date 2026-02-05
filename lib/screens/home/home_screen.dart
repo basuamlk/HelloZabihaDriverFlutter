@@ -5,6 +5,7 @@ import '../../providers/home_provider.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/delivery_row.dart';
 import '../../widgets/status_badge.dart';
+import '../../theme/app_theme.dart';
 import '../deliveries/delivery_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,12 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
     final currencyFormat = NumberFormat.currency(symbol: '\$');
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: const Text('HelloZabiha Driver'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: Consumer<HomeProvider>(
         builder: (context, provider, child) {
@@ -121,18 +119,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildStatusCard(HomeProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppTheme.spacingM),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            Colors.green.shade600,
-            Colors.green.shade400,
+            AppTheme.primaryGreenDark,
+            AppTheme.primaryGreen,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withValues(alpha: 0.3),
+            color: AppTheme.primaryGreen.withValues(alpha:0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -142,40 +140,42 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Hello, ${provider.driverName}!',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello, ${provider.driverName}!',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        provider.isAvailable
-                            ? Icons.check_circle
-                            : Icons.pause_circle_filled,
-                        color: Colors.white70,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        provider.isAvailable ? 'Available' : 'Offline',
-                        style: const TextStyle(
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          provider.isAvailable
+                              ? Icons.check_circle
+                              : Icons.pause_circle_filled,
                           color: Colors.white70,
-                          fontSize: 14,
+                          size: 16,
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        const SizedBox(width: 6),
+                        Text(
+                          provider.isAvailable ? 'Available' : 'Offline',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               Switch(
                 value: provider.isAvailable,
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.3,
+      childAspectRatio: 1.2,
       children: [
         StatCard(
           title: "Today's Deliveries",
@@ -238,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: "Today's Earnings",
           value: currencyFormat.format(provider.todayEarnings),
           icon: Icons.attach_money,
-          color: Colors.green,
+          color: AppTheme.primaryGreen,
         ),
         StatCard(
           title: 'Rating',
@@ -259,24 +259,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => _navigateToDetail(delivery.id),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.shade200),
+          color: AppTheme.iconBackground,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(color: AppTheme.primaryGreenLight.withValues(alpha:0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.local_shipping, color: Colors.green),
+                const Icon(Icons.local_shipping, color: AppTheme.primaryGreen),
                 const SizedBox(width: 8),
                 const Text(
                   'In Progress',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Colors.green,
+                    color: AppTheme.primaryGreen,
                   ),
                 ),
                 const Spacer(),

@@ -31,6 +31,24 @@ dependencies:
   # Utilities
   intl: ^0.20.2
   uuid: ^4.5.1
+  http: ^1.2.2
+
+  # Image & Signature Capture
+  image_picker: ^1.1.2
+  signature: ^5.5.0
+  path_provider: ^2.1.5
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+  vibration: ^2.0.1
+  audioplayers: ^6.1.0
+
+  # Connectivity & Caching
+  connectivity_plus: ^6.1.1
+  shared_preferences: ^2.3.4
+
+  # Environment Configuration
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -39,3 +57,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - .env
+    - assets/sounds/
