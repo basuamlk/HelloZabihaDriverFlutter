@@ -52,14 +52,31 @@ class NotificationsProvider extends ChangeNotifier {
 
     _deliverySubscription?.cancel();
 
-    // Subscribe to changes in deliveries table for this driver
-    _deliverySubscription = SupabaseService.client
-        .from('deliveries')
-        .stream(primaryKey: ['id'])
-        .eq('driver_id', userId)
-        .listen((List<Map<String, dynamic>> data) {
-          _handleDeliveryUpdates(data);
-        });
+    try {
+      // Subscribe to changes in deliveries table for this driver
+      _deliverySubscription = SupabaseService.client
+          .from('deliveries')
+          .stream(primaryKey: ['id'])
+          .eq('driver_id', userId)
+          .listen(
+            (List<Map<String, dynamic>> data) {
+              _handleDeliveryUpdates(data);
+            },
+            onError: (error) {
+              // Log the error but don't crash - realtime is non-critical
+              debugPrint('Realtime subscription error: $error');
+              // Optionally retry after a delay
+              Future.delayed(const Duration(seconds: 30), () {
+                if (_authService.currentUser != null) {
+                  _startDeliverySubscription();
+                }
+              });
+            },
+            cancelOnError: false,
+          );
+    } catch (e) {
+      debugPrint('Failed to start delivery subscription: $e');
+    }
   }
 
   void _handleDeliveryUpdates(List<Map<String, dynamic>> data) {

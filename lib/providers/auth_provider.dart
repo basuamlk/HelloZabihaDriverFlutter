@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../services/driver_service.dart';
+import '../utils/error_handler.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService.instance;
@@ -50,12 +51,12 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return _isAuthenticated;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -108,12 +109,12 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return _isAuthenticated;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -136,12 +137,12 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } on AuthException catch (e) {
-      _errorMessage = e.message;
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      _errorMessage = 'An unexpected error occurred';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;

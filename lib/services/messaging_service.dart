@@ -135,6 +135,7 @@ class MessagingService {
   }
 
   /// Subscribe to new messages for a delivery
+  /// Returns a stream that gracefully handles errors without crashing
   Stream<Message> subscribeToMessages(String deliveryId) {
     return _supabase
         .from('delivery_messages')
@@ -142,7 +143,12 @@ class MessagingService {
         .eq('delivery_id', deliveryId)
         .order('created_at')
         .map((data) => data.map((json) => Message.fromJson(json)))
-        .expand((messages) => messages);
+        .expand((messages) => messages)
+        .handleError((error) {
+          // Log error but don't propagate - prevents crashes
+          // ignore: avoid_print
+          print('Message subscription error: $error');
+        });
   }
 
   /// Get unread message count for a delivery

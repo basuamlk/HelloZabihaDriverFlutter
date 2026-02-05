@@ -5,23 +5,28 @@ import '../models/delivery.dart';
 import '../services/driver_service.dart';
 import '../services/delivery_service.dart';
 import '../services/auth_service.dart';
+import '../services/cache_service.dart';
+import '../utils/error_handler.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final DriverService _driverService = DriverService.instance;
   final DeliveryService _deliveryService = DeliveryService.instance;
   final AuthService _authService = AuthService.instance;
+  final CacheService _cacheService = CacheService.instance;
 
   Driver? _driver;
   int _weeklyDeliveries = 0;
   int _monthlyDeliveries = 0;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isFromCache = false;
 
   Driver? get driver => _driver;
   int get weeklyDeliveries => _weeklyDeliveries;
   int get monthlyDeliveries => _monthlyDeliveries;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isFromCache => _isFromCache;
 
   Future<void> loadProfile() async {
     _isLoading = true;
@@ -74,12 +79,24 @@ class ProfileProvider extends ChangeNotifier {
         if (_driver!.totalDeliveries != completedDeliveries.length) {
           _driver = _driver!.copyWith(totalDeliveries: completedDeliveries.length);
         }
+
+        // Cache driver for offline use
+        await _cacheService.cacheDriver(_driver!);
       }
 
+      _isFromCache = false;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Failed to load profile';
+      // Try to load from cache on network error
+      final cachedDriver = await _cacheService.getCachedDriver();
+      if (cachedDriver != null) {
+        _driver = cachedDriver;
+        _isFromCache = true;
+        _errorMessage = null; // Clear error since we have cached data
+      } else {
+        _errorMessage = ErrorHandler.getUserMessage(e);
+      }
       _isLoading = false;
       notifyListeners();
     }
@@ -130,7 +147,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to update profile';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -164,7 +181,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to update personal info';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -202,7 +219,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to update vehicle info';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -242,7 +259,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to update capacity settings';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -274,7 +291,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Upload error: $e';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -302,7 +319,7 @@ class ProfileProvider extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to delete photo';
+      _errorMessage = ErrorHandler.getUserMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;

@@ -5,6 +5,8 @@ import '../../providers/home_provider.dart';
 import '../../providers/deliveries_provider.dart';
 import '../../services/dev_mode_service.dart';
 import '../../theme/app_theme.dart';
+import '../legal/terms_of_service_screen.dart';
+import '../legal/privacy_policy_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -337,7 +339,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Terms of Service'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: Navigate to terms
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TermsOfServiceScreen(),
+                ),
+              );
             },
           ),
           const Divider(height: 1),
@@ -346,7 +353,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Privacy Policy'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              // TODO: Navigate to privacy policy
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PrivacyPolicyScreen(),
+                ),
+              );
             },
           ),
         ],
