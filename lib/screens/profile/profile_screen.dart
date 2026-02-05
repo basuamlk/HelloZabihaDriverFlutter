@@ -309,7 +309,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       if (confirm == true && mounted) {
-        await provider.deleteProfilePhoto();
+        final success = await provider.deleteProfilePhoto();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success ? 'Photo removed' : 'Failed to remove photo'),
+              backgroundColor: success ? AppTheme.success : AppTheme.error,
+            ),
+          );
+        }
       }
       return;
     }
@@ -323,7 +331,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (image != null && mounted) {
-      await provider.uploadProfilePhoto(File(image.path));
+      final success = await provider.uploadProfilePhoto(File(image.path));
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile photo updated'),
+              backgroundColor: AppTheme.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.errorMessage ?? 'Failed to upload photo'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      }
     }
   }
 

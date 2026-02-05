@@ -268,13 +268,13 @@ class ProfileProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _errorMessage = 'Failed to upload photo';
+        _errorMessage = 'Failed to upload photo. Make sure storage bucket exists.';
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = 'Failed to upload photo';
+      _errorMessage = 'Upload error: $e';
       _isLoading = false;
       notifyListeners();
       return false;

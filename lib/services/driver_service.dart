@@ -341,21 +341,41 @@ class DriverService {
   /// Upload profile photo and update driver record
   Future<String?> uploadProfilePhoto(File photo) async {
     final userId = AuthService.instance.currentUser?.id;
-    if (userId == null) return null;
+    if (userId == null) {
+      print('uploadProfilePhoto: No user ID');
+      return null;
+    }
 
     try {
-      final fileName = 'profile_$userId\_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final filePath = 'drivers/$userId/$fileName';
+      // Determine file extension from path
+      final extension = photo.path.split('.').last.toLowerCase();
+      final contentType = _getContentType(extension);
+      final fileName = 'profile_$userId\_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final filePath = '$userId/$fileName';
 
-      // Upload to Supabase Storage
+      print('uploadProfilePhoto: Uploading $filePath with content type $contentType');
+
+      // Read file bytes
+      final bytes = await photo.readAsBytes();
+
+      // Upload to Supabase Storage with explicit content type
       await _client.storage
           .from('profile-photos')
-          .upload(filePath, photo);
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: contentType,
+              upsert: true,
+            ),
+          );
 
       // Get public URL
       final photoUrl = _client.storage
           .from('profile-photos')
           .getPublicUrl(filePath);
+
+      print('uploadProfilePhoto: Got URL $photoUrl');
 
       // Update driver record with photo URL
       await _client
@@ -366,9 +386,29 @@ class DriverService {
           })
           .eq('id', userId);
 
+      print('uploadProfilePhoto: Updated driver record');
       return photoUrl;
     } catch (e) {
+      print('uploadProfilePhoto error: $e');
       return null;
+    }
+  }
+
+  String _getContentType(String extension) {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      case 'webp':
+        return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      default:
+        return 'image/jpeg';
     }
   }
 
