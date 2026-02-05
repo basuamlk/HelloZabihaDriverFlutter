@@ -350,8 +350,8 @@ class DriverService {
       // Determine file extension from path
       final extension = photo.path.split('.').last.toLowerCase();
       final contentType = _getContentType(extension);
-      final fileName = 'profile_$userId\_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final filePath = '$userId/$fileName';
+      final fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final filePath = 'drivers/$userId/$fileName';
 
       print('uploadProfilePhoto: Uploading $filePath with content type $contentType');
 
