@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../models/delivery.dart';
+import '../../models/order_item.dart';
 import '../../providers/deliveries_provider.dart';
 import '../../providers/delivery_detail_provider.dart';
 import '../../widgets/delivery_progress.dart';
@@ -35,9 +36,20 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
   void _loadDelivery() {
     final deliveriesProvider = context.read<DeliveriesProvider>();
+    final detailProvider = context.read<DeliveryDetailProvider>();
     setState(() {
       _delivery = deliveriesProvider.getDeliveryById(widget.deliveryId);
     });
+    // Load order items
+    if (_delivery != null) {
+      detailProvider.loadOrderItems(_delivery!.orderId);
+    }
+  }
+
+  @override
+  void dispose() {
+    context.read<DeliveryDetailProvider>().clearOrderItems();
+    super.dispose();
   }
 
   @override
@@ -577,72 +589,185 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
   }
 
   Widget _buildOrderSection(NumberFormat currencyFormat) {
-    return Container(
-      decoration: AppTheme.cardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppTheme.spacingS),
-                  decoration: AppTheme.iconContainerDecoration,
-                  child: const Icon(
-                    Icons.receipt_long,
-                    color: AppTheme.primaryGreen,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: AppTheme.spacingM),
-                const Text(
-                  'Order Summary',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingM),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<DeliveryDetailProvider>(
+      builder: (context, provider, _) {
+        final orderItems = provider.orderItems;
+
+        return Container(
+          decoration: AppTheme.cardDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Row(
                   children: [
-                    Text(
-                      'Items',
-                      style: TextStyle(color: Colors.grey[600]),
+                    Container(
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
+                      decoration: AppTheme.iconContainerDecoration,
+                      child: const Icon(
+                        Icons.receipt_long,
+                        color: AppTheme.primaryGreen,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spacingM),
+                    const Expanded(
+                      child: Text(
+                        'Order Details',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                     Text(
                       '${_delivery!.itemCount} item${_delivery!.itemCount != 1 ? 's' : ''}',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppTheme.spacingS),
-                Row(
+              ),
+              const Divider(height: 1),
+              // Order items list
+              if (orderItems.isNotEmpty) ...[
+                ...orderItems.map((item) => _buildOrderItemRow(item)),
+                const Divider(height: 1),
+              ],
+              // Summary row
+              Padding(
+                padding: const EdgeInsets.all(AppTheme.spacingM),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Total Amount',
-                      style: TextStyle(color: Colors.grey[600]),
+                    const Text(
+                      'Order Total',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
                     Text(
                       currencyFormat.format(_delivery!.totalAmount),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 18,
+                        color: AppTheme.primaryGreen,
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOrderItemRow(OrderItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingM,
+        vertical: AppTheme.spacingS,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[100]!),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Quantity badge
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${item.quantity}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryGreen,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Item details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.productName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+                if (item.productDescription != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.productDescription!,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (item.notes != null) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.notes!,
+                      style: TextStyle(
+                        color: Colors.orange[800],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
+          ),
+          const SizedBox(width: 12),
+          // Price
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                item.formattedPrice,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                item.formattedQuantity,
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -5,6 +5,8 @@ import '../../providers/profile_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import 'edit_profile_screen.dart';
+import '../earnings/earnings_screen.dart';
+import '../history/delivery_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -156,10 +158,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   _buildMenuSection([
                     _MenuItem(
+                      icon: Icons.attach_money,
+                      title: 'Earnings',
+                      subtitle: 'View your earnings and payouts',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EarningsScreen()),
+                        );
+                      },
+                    ),
+                    _MenuItem(
                       icon: Icons.history,
                       title: 'Delivery History',
                       subtitle: 'View past deliveries',
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const DeliveryHistoryScreen()),
+                        );
+                      },
                     ),
                     _MenuItem(
                       icon: Icons.help_outline,

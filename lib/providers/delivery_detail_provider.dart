@@ -2,16 +2,32 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/delivery.dart';
+import '../models/order_item.dart';
 import '../services/delivery_service.dart';
+import '../services/order_service.dart';
 
 class DeliveryDetailProvider extends ChangeNotifier {
   final DeliveryService _deliveryService = DeliveryService.instance;
+  final OrderService _orderService = OrderService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
+  List<OrderItem> _orderItems = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  List<OrderItem> get orderItems => _orderItems;
+
+  /// Load order items for a delivery
+  Future<void> loadOrderItems(String orderId) async {
+    _orderItems = await _orderService.getOrderItems(orderId);
+    notifyListeners();
+  }
+
+  /// Clear order items when leaving detail screen
+  void clearOrderItems() {
+    _orderItems = [];
+  }
 
   Future<Delivery?> updateStatus(Delivery delivery, DeliveryStatus newStatus) async {
     _isLoading = true;
