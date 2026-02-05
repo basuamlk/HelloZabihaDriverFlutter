@@ -319,11 +319,17 @@ class DeliveryService {
   }
 
   /// Subscribe to delivery updates (real-time)
+  /// Returns a stream that gracefully handles errors without crashing
   Stream<Delivery> subscribeToDelivery(String deliveryId) {
     return _client
         .from('deliveries')
         .stream(primaryKey: ['id'])
         .eq('id', deliveryId)
-        .map((data) => Delivery.fromJson(data.first));
+        .map((data) => Delivery.fromJson(data.first))
+        .handleError((error) {
+          // Log error but don't propagate - prevents crashes
+          // ignore: avoid_print
+          print('Delivery subscription error: $error');
+        });
   }
 }

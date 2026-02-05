@@ -58,15 +58,27 @@ class MessagingProvider extends ChangeNotifier {
 
     if (_currentDeliveryId == null) return;
 
-    _messageSubscription = _service
-        .subscribeToMessages(_currentDeliveryId!)
-        .listen((message) {
-      // Add new message if not already in list
-      if (!_messages.any((m) => m.id == message.id)) {
-        _messages.add(message);
-        notifyListeners();
-      }
-    });
+    try {
+      _messageSubscription = _service
+          .subscribeToMessages(_currentDeliveryId!)
+          .listen(
+            (message) {
+              // Add new message if not already in list
+              if (!_messages.any((m) => m.id == message.id)) {
+                _messages.add(message);
+                notifyListeners();
+              }
+            },
+            onError: (error) {
+              // Log the error but don't crash - realtime is non-critical
+              debugPrint('Message subscription error: $error');
+              // Messages will still work via manual refresh
+            },
+            cancelOnError: false,
+          );
+    } catch (e) {
+      debugPrint('Failed to start message subscription: $e');
+    }
   }
 
   /// Send a text message

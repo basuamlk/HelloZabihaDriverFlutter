@@ -1,16 +1,21 @@
 import 'package:flutter/foundation.dart';
 import '../models/delivery.dart';
 import '../services/delivery_service.dart';
+import '../services/cache_service.dart';
+import '../utils/error_handler.dart';
 
 enum DeliveryFilter { all, pending, completed }
 
 class DeliveriesProvider extends ChangeNotifier {
   final DeliveryService _deliveryService = DeliveryService.instance;
+  final CacheService _cacheService = CacheService.instance;
 
   List<Delivery> _allDeliveries = [];
   DeliveryFilter _currentFilter = DeliveryFilter.all;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isFromCache = false;
+  String? _lastSyncTime;
 
   List<Delivery> get deliveries {
     switch (_currentFilter) {
@@ -28,6 +33,8 @@ class DeliveriesProvider extends ChangeNotifier {
   DeliveryFilter get currentFilter => _currentFilter;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isFromCache => _isFromCache;
+  String? get lastSyncTime => _lastSyncTime;
 
   Future<void> loadDeliveries() async {
     _isLoading = true;
@@ -35,11 +42,27 @@ class DeliveriesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Try to fetch from network
       _allDeliveries = await _deliveryService.getDriverDeliveries();
+      _isFromCache = false;
+
+      // Cache the data for offline use
+      await _cacheService.cacheDeliveries(_allDeliveries);
+      _lastSyncTime = await _cacheService.getLastSyncString();
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Failed to load deliveries';
+      // Try to load from cache on network error
+      final cachedDeliveries = await _cacheService.getCachedDeliveries();
+      if (cachedDeliveries.isNotEmpty) {
+        _allDeliveries = cachedDeliveries;
+        _isFromCache = true;
+        _lastSyncTime = await _cacheService.getLastSyncString();
+        _errorMessage = null; // Clear error since we have cached data
+      } else {
+        _errorMessage = ErrorHandler.getUserMessage(e);
+      }
       _isLoading = false;
       notifyListeners();
     }
