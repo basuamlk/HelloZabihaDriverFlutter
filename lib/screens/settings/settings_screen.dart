@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/home_provider.dart';
 import '../../providers/deliveries_provider.dart';
+import '../../services/admin_service.dart';
 import '../../services/dev_mode_service.dart';
 import '../../theme/app_theme.dart';
 import '../legal/terms_of_service_screen.dart';
@@ -122,11 +123,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: AppTheme.spacingL),
 
-          // Developer section
-          _buildSectionHeader(context, 'Developer'),
-          _buildDevModeCard(context),
-
-          const SizedBox(height: AppTheme.spacingL),
+          // Developer section (admin only)
+          if (AdminService.instance.isAdmin) ...[
+            _buildSectionHeader(context, 'Developer'),
+            _buildDevModeCard(context),
+            const SizedBox(height: AppTheme.spacingL),
+          ],
 
           // About section
           _buildSectionHeader(context, 'About'),

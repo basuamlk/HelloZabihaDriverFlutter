@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/app_notification.dart';
 import '../../providers/notifications_provider.dart';
+import '../../services/admin_service.dart';
 import '../../theme/app_theme.dart';
 import '../deliveries/delivery_detail_screen.dart';
 
@@ -44,16 +45,18 @@ class NotificationsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const PopupMenuItem(
-                value: 'test',
-                child: Row(
-                  children: [
-                    Icon(Icons.bug_report, size: 20),
-                    SizedBox(width: 8),
-                    Text('Test notification'),
-                  ],
+              // Test notification option (admin only)
+              if (AdminService.instance.isAdmin)
+                const PopupMenuItem(
+                  value: 'test',
+                  child: Row(
+                    children: [
+                      Icon(Icons.bug_report, size: 20),
+                      SizedBox(width: 8),
+                      Text('Test notification'),
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ],
