@@ -48,7 +48,15 @@ class NotificationsProvider extends ChangeNotifier {
   /// Start real-time subscription for delivery updates
   void _startDeliverySubscription() {
     final userId = _authService.currentUser?.id;
-    if (userId == null) return;
+    if (userId == null) {
+      // Retry after a delay if user is not yet authenticated
+      Future.delayed(const Duration(seconds: 5), () {
+        if (_authService.currentUser != null) {
+          _startDeliverySubscription();
+        }
+      });
+      return;
+    }
 
     _deliverySubscription?.cancel();
 
@@ -65,7 +73,7 @@ class NotificationsProvider extends ChangeNotifier {
             onError: (error) {
               // Log the error but don't crash - realtime is non-critical
               debugPrint('Realtime subscription error: $error');
-              // Optionally retry after a delay
+              // Retry after a delay
               Future.delayed(const Duration(seconds: 30), () {
                 if (_authService.currentUser != null) {
                   _startDeliverySubscription();
