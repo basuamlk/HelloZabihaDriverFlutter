@@ -9,8 +9,7 @@ class AdminService {
   /// List of email addresses with admin access.
   /// Add your email here to enable dev mode features.
   static const List<String> _adminEmails = [
-    // Add admin emails here (case-insensitive)
-    'basu@example.com', // Replace with your actual email
+    '0001bz@gmail.com',
   ];
 
   /// Check if the current user has admin privileges
