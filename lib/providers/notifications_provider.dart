@@ -88,8 +88,9 @@ class NotificationsProvider extends ChangeNotifier {
   }
 
   void _handleDeliveryUpdates(List<Map<String, dynamic>> data) {
+    final userId = _authService.currentUser?.id;
     // This is called whenever there's a change to deliveries
-    // We'll detect new deliveries by checking if they're newly assigned
+    // We'll detect new deliveries by checking if they're newly assigned or offered
     for (final item in data) {
       try {
         final delivery = Delivery.fromJson(item);
@@ -100,6 +101,19 @@ class NotificationsProvider extends ChangeNotifier {
           if (timeSinceCreated.inSeconds < 30) {
             // This is likely a new assignment
             _notificationService.showNewDeliveryNotification(delivery);
+          }
+        }
+
+        // Detect offered status for this driver — trigger sound/vibration
+        if (delivery.status == DeliveryStatus.offered &&
+            delivery.offeredDriverId == userId) {
+          final timeSinceUpdated = DateTime.now().difference(delivery.updatedAt);
+          if (timeSinceUpdated.inSeconds < 30) {
+            _notificationService.showNotification(
+              title: 'New Delivery Offer',
+              body: 'You have a new delivery offer! Tap to review.',
+              payload: 'delivery:${delivery.id}',
+            );
           }
         }
       } catch (e) {

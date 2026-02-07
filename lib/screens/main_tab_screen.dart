@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home/home_screen.dart';
 import 'deliveries/deliveries_screen.dart';
+import 'deliveries/delivery_offer_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'profile/profile_screen.dart';
+import '../providers/delivery_offer_provider.dart';
 import '../providers/notifications_provider.dart';
 
 class MainTabScreen extends StatefulWidget {
@@ -25,56 +27,79 @@ class _MainTabScreenState extends State<MainTabScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
+    return Consumer<DeliveryOfferProvider>(
+      builder: (context, offerProvider, child) {
+        // Show offer screen when a new offer arrives
+        if (offerProvider.hasActiveOffer && !offerProvider.offerScreenShowing) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _showOfferScreen(context);
+            }
           });
-        },
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: 'Deliveries',
-          ),
-          NavigationDestination(
-            icon: Consumer<NotificationsProvider>(
-              builder: (context, provider, child) {
-                return Badge(
-                  isLabelVisible: provider.hasUnread,
-                  label: Text('${provider.unreadCount}'),
-                  child: const Icon(Icons.notifications_outlined),
-                );
-              },
+        }
+
+        return child!;
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          destinations: [
+            const NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
             ),
-            selectedIcon: Consumer<NotificationsProvider>(
-              builder: (context, provider, child) {
-                return Badge(
-                  isLabelVisible: provider.hasUnread,
-                  label: Text('${provider.unreadCount}'),
-                  child: const Icon(Icons.notifications),
-                );
-              },
+            const NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2),
+              label: 'Deliveries',
             ),
-            label: 'Notifications',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outlined),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+            NavigationDestination(
+              icon: Consumer<NotificationsProvider>(
+                builder: (context, provider, child) {
+                  return Badge(
+                    isLabelVisible: provider.hasUnread,
+                    label: Text('${provider.unreadCount}'),
+                    child: const Icon(Icons.notifications_outlined),
+                  );
+                },
+              ),
+              selectedIcon: Consumer<NotificationsProvider>(
+                builder: (context, provider, child) {
+                  return Badge(
+                    isLabelVisible: provider.hasUnread,
+                    label: Text('${provider.unreadCount}'),
+                    child: const Icon(Icons.notifications),
+                  );
+                },
+              ),
+              label: 'Notifications',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.person_outlined),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOfferScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const DeliveryOfferScreen(),
       ),
     );
   }

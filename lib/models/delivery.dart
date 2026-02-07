@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 enum DeliveryStatus {
   pending,
+  offered,
   assigned,
   pickedUpFromFarm,
   enRoute,
@@ -13,6 +14,8 @@ enum DeliveryStatus {
     switch (this) {
       case DeliveryStatus.pending:
         return 'pending';
+      case DeliveryStatus.offered:
+        return 'offered';
       case DeliveryStatus.assigned:
         return 'assigned';
       case DeliveryStatus.pickedUpFromFarm:
@@ -32,6 +35,8 @@ enum DeliveryStatus {
     switch (value) {
       case 'pending':
         return DeliveryStatus.pending;
+      case 'offered':
+        return DeliveryStatus.offered;
       case 'assigned':
         return DeliveryStatus.assigned;
       case 'picked_up_from_farm':
@@ -53,6 +58,8 @@ enum DeliveryStatus {
     switch (this) {
       case DeliveryStatus.pending:
         return 'Pending';
+      case DeliveryStatus.offered:
+        return 'Offer Pending';
       case DeliveryStatus.assigned:
         return 'Assigned';
       case DeliveryStatus.pickedUpFromFarm:
@@ -72,6 +79,8 @@ enum DeliveryStatus {
     switch (this) {
       case DeliveryStatus.pending:
         return Colors.grey;
+      case DeliveryStatus.offered:
+        return Colors.amber;
       case DeliveryStatus.assigned:
         return Colors.orange;
       case DeliveryStatus.pickedUpFromFarm:
@@ -91,6 +100,8 @@ enum DeliveryStatus {
     switch (this) {
       case DeliveryStatus.pending:
         return Icons.hourglass_empty;
+      case DeliveryStatus.offered:
+        return Icons.notifications_active;
       case DeliveryStatus.assigned:
         return Icons.assignment;
       case DeliveryStatus.pickedUpFromFarm:
@@ -109,6 +120,7 @@ enum DeliveryStatus {
   String? get buttonTitle {
     switch (this) {
       case DeliveryStatus.pending:
+      case DeliveryStatus.offered:
         return null;
       case DeliveryStatus.assigned:
         return 'Confirm Pickup';
@@ -127,6 +139,8 @@ enum DeliveryStatus {
   DeliveryStatus? get nextStatus {
     switch (this) {
       case DeliveryStatus.pending:
+        return DeliveryStatus.offered;
+      case DeliveryStatus.offered:
         return DeliveryStatus.assigned;
       case DeliveryStatus.assigned:
         return DeliveryStatus.pickedUpFromFarm;
@@ -157,6 +171,8 @@ enum DeliveryStatus {
     switch (this) {
       case DeliveryStatus.pending:
         return 0.0;
+      case DeliveryStatus.offered:
+        return 0.05;
       case DeliveryStatus.assigned:
         return 0.1;
       case DeliveryStatus.pickedUpFromFarm:
@@ -176,6 +192,7 @@ enum DeliveryStatus {
   int get stepIndex {
     switch (this) {
       case DeliveryStatus.pending:
+      case DeliveryStatus.offered:
       case DeliveryStatus.assigned:
         return 0;
       case DeliveryStatus.pickedUpFromFarm:
@@ -194,7 +211,7 @@ enum DeliveryStatus {
 class Delivery {
   final String id;
   final String orderId;
-  final String driverId;
+  final String? driverId;
   final DeliveryStatus status;
 
   // Customer info
@@ -231,6 +248,10 @@ class Delivery {
   final bool requiresSignature;
   final String? specialInstructions;
 
+  // Offer tracking
+  final String? offeredDriverId;
+  final DateTime? offerExpiresAt;
+
   // Timestamps
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -238,7 +259,7 @@ class Delivery {
   Delivery({
     required this.id,
     required this.orderId,
-    required this.driverId,
+    this.driverId,
     required this.status,
     required this.customerName,
     required this.customerPhone,
@@ -264,6 +285,8 @@ class Delivery {
     this.requiresRefrigeration = false,
     this.requiresSignature = false,
     this.specialInstructions,
+    this.offeredDriverId,
+    this.offerExpiresAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -293,7 +316,7 @@ class Delivery {
     return Delivery(
       id: json['id'] as String,
       orderId: json['order_id'] as String,
-      driverId: json['driver_id'] as String,
+      driverId: json['driver_id'] as String?,
       status: DeliveryStatus.fromString(json['status'] as String),
       customerName: json['customer_name'] as String,
       customerPhone: json['customer_phone'] as String,
@@ -327,6 +350,10 @@ class Delivery {
       requiresRefrigeration: json['requires_refrigeration'] as bool? ?? false,
       requiresSignature: json['requires_signature'] as bool? ?? false,
       specialInstructions: json['special_instructions'] as String?,
+      offeredDriverId: json['offered_driver_id'] as String?,
+      offerExpiresAt: json['offer_expires_at'] != null
+          ? DateTime.parse(json['offer_expires_at'] as String)
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -362,6 +389,8 @@ class Delivery {
       'requires_refrigeration': requiresRefrigeration,
       'requires_signature': requiresSignature,
       'special_instructions': specialInstructions,
+      'offered_driver_id': offeredDriverId,
+      'offer_expires_at': offerExpiresAt?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -396,6 +425,8 @@ class Delivery {
     bool? requiresRefrigeration,
     bool? requiresSignature,
     String? specialInstructions,
+    String? offeredDriverId,
+    DateTime? offerExpiresAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -428,6 +459,8 @@ class Delivery {
       requiresRefrigeration: requiresRefrigeration ?? this.requiresRefrigeration,
       requiresSignature: requiresSignature ?? this.requiresSignature,
       specialInstructions: specialInstructions ?? this.specialInstructions,
+      offeredDriverId: offeredDriverId ?? this.offeredDriverId,
+      offerExpiresAt: offerExpiresAt ?? this.offerExpiresAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

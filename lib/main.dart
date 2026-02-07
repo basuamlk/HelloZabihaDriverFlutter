@@ -11,6 +11,7 @@ import 'providers/onboarding_provider.dart';
 import 'providers/earnings_provider.dart';
 import 'providers/messaging_provider.dart';
 import 'providers/analytics_provider.dart';
+import 'providers/delivery_offer_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main_tab_screen.dart';
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => EarningsProvider()),
         ChangeNotifierProvider(create: (_) => MessagingProvider()),
         ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+        ChangeNotifierProvider(create: (_) => DeliveryOfferProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(

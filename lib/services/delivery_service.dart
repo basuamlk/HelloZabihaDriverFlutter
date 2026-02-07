@@ -265,6 +265,7 @@ class DeliveryService {
         .select()
         .eq('driver_id', userId)
         .inFilter('status', [
+          DeliveryStatus.offered.value,
           DeliveryStatus.assigned.value,
           DeliveryStatus.pickedUpFromFarm.value,
           DeliveryStatus.enRoute.value,

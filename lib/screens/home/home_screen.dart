@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/home_provider.dart';
+import '../../providers/delivery_offer_provider.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/delivery_row.dart';
 import '../../widgets/status_badge.dart';
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeProvider>().loadData();
       context.read<HomeProvider>().requestLocationPermission();
+      context.read<DeliveryOfferProvider>().loadDeclinedOffers();
     });
   }
 
@@ -81,6 +83,33 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 20),
                   ],
+
+                  // Recently Declined Offers
+                  Consumer<DeliveryOfferProvider>(
+                    builder: (context, offerProvider, child) {
+                      if (offerProvider.declinedOffers.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle(
+                            'Recently Declined (${offerProvider.declinedOffers.length})',
+                          ),
+                          const SizedBox(height: 12),
+                          ...offerProvider.declinedOffers.map(
+                            (info) => _buildDeclinedOfferCard(
+                              context,
+                              info,
+                              currencyFormat,
+                              offerProvider,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      );
+                    },
+                  ),
 
                   // Recent Deliveries
                   if (provider.recentDeliveries.isNotEmpty) ...[
@@ -330,6 +359,134 @@ class _HomeScreenState extends State<HomeScreen> {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildDeclinedOfferCard(
+    BuildContext context,
+    DeclinedOfferInfo info,
+    NumberFormat currencyFormat,
+    DeliveryOfferProvider offerProvider,
+  ) {
+    final delivery = info.delivery;
+    final timeSinceDeclined = info.offer.respondedAt != null
+        ? DateTime.now().difference(info.offer.respondedAt!)
+        : Duration.zero;
+
+    String timeAgo;
+    if (timeSinceDeclined.inMinutes < 1) {
+      timeAgo = 'Just now';
+    } else if (timeSinceDeclined.inMinutes < 60) {
+      timeAgo = '${timeSinceDeclined.inMinutes} min ago';
+    } else {
+      timeAgo = '${timeSinceDeclined.inHours}h ago';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        padding: const EdgeInsets.all(AppTheme.spacingM),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    delivery?.deliveryAddress ?? 'Unknown address',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: info.isAvailable
+                        ? AppTheme.primaryGreen.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    info.isAvailable ? 'Still Available' : 'Taken',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: info.isAvailable ? AppTheme.primaryGreen : Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  delivery != null
+                      ? '${delivery.itemCount} items'
+                      : '',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                ),
+                if (delivery != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    currencyFormat.format(delivery.totalAmount),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                ],
+                const SizedBox(width: 8),
+                Text(
+                  'Declined $timeAgo',
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+                const Spacer(),
+                if (info.isAvailable)
+                  SizedBox(
+                    height: 32,
+                    child: ElevatedButton(
+                      onPressed: offerProvider.isResponding
+                          ? null
+                          : () async {
+                              final success = await offerProvider
+                                  .reclaimDelivery(info.offer.deliveryId);
+                              if (success && context.mounted) {
+                                _navigateToDetail(info.offer.deliveryId);
+                              } else if (!success && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'This delivery has already been taken',
+                                    ),
+                                  ),
+                                );
+                                // Refresh the list
+                                offerProvider.loadDeclinedOffers();
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryGreen,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Accept', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

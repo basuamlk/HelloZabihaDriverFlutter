@@ -121,7 +121,9 @@ class HomeProvider extends ChangeNotifier {
         );
 
     _assignedDeliveries = deliveries
-        .where((d) => d.status == DeliveryStatus.assigned)
+        .where((d) =>
+            d.status == DeliveryStatus.assigned ||
+            d.status == DeliveryStatus.offered)
         .toList();
 
     _pendingDeliveries = deliveries.where((d) => d.status.isPending).length;
