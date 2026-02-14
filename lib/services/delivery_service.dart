@@ -145,6 +145,9 @@ class DeliveryService {
         .select()
         .single();
 
+    // Reset driver's on-delivery flag so they can receive new offers
+    await _resetDriverOnDelivery();
+
     return Delivery.fromJson(response);
   }
 
@@ -169,7 +172,24 @@ class DeliveryService {
         .select()
         .single();
 
+    // Reset driver's on-delivery flag so they can receive new offers
+    await _resetDriverOnDelivery();
+
     return Delivery.fromJson(response);
+  }
+
+  /// Reset the current driver's is_on_delivery flag to false
+  Future<void> _resetDriverOnDelivery() async {
+    final userId = AuthService.instance.currentUser?.id;
+    if (userId == null) return;
+
+    await _client
+        .from('drivers')
+        .update({
+          'is_on_delivery': false,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', userId);
   }
 
   /// Update ETA

@@ -181,21 +181,21 @@ class DeliveryOfferProvider extends ChangeNotifier {
     _countdownTimer?.cancel();
     if (_currentOffer == null) return;
 
-    // Auto-decline via Edge Function (marks as expired server-side)
-    try {
-      await _offerService.checkExpiredOffers();
-    } catch (e) {
-      debugPrint('Error auto-expiring offer: $e');
-    }
-
     final expiredOffer = _currentOffer;
+
+    // Clear state immediately so the UI can dismiss
     _currentOffer = null;
     _currentOfferDelivery = null;
     _remainingSeconds = 0;
     notifyListeners();
 
-    // Refresh declined offers
+    // Mark as expired server-side (non-blocking, best-effort)
     if (expiredOffer != null) {
+      try {
+        await _offerService.respondToOffer(expiredOffer.id, 'decline');
+      } catch (e) {
+        debugPrint('Error expiring offer: $e');
+      }
       await loadDeclinedOffers();
     }
   }

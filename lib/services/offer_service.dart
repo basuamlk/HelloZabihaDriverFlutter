@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/delivery_offer.dart';
@@ -13,40 +12,39 @@ class OfferService {
 
   SupabaseClient get _client => SupabaseService.client;
 
-  /// Respond to an offer (accept or decline) via Edge Function
+  /// Respond to an offer (accept or decline) via database RPC
   Future<Map<String, dynamic>> respondToOffer(String offerId, String action) async {
     try {
-      final response = await _client.functions.invoke(
-        'respond-to-offer',
-        body: {'offer_id': offerId, 'action': action},
+      final response = await _client.rpc(
+        'respond_to_delivery_offer',
+        params: {'p_offer_id': offerId, 'p_action': action},
       );
 
-      if (response.status != 200) {
-        final body = jsonDecode(response.data as String);
-        throw Exception(body['error'] ?? 'Failed to respond to offer');
+      if (response is Map<String, dynamic>) {
+        return response;
       }
-
-      return jsonDecode(response.data as String) as Map<String, dynamic>;
+      return {'success': true, 'action': action};
     } catch (e) {
       debugPrint('respondToOffer error: $e');
       rethrow;
     }
   }
 
-  /// Reclaim a previously declined delivery via Edge Function
+  /// Reclaim a previously declined delivery via database RPC
   Future<Map<String, dynamic>> reclaimDelivery(String deliveryId) async {
     try {
-      final response = await _client.functions.invoke(
-        'reclaim-delivery',
-        body: {'delivery_id': deliveryId},
+      final response = await _client.rpc(
+        'respond_to_delivery_offer',
+        params: {
+          'p_offer_id': deliveryId,
+          'p_action': 'accept',
+        },
       );
 
-      if (response.status != 200) {
-        final body = jsonDecode(response.data as String);
-        throw Exception(body['error'] ?? 'Failed to reclaim delivery');
+      if (response is Map<String, dynamic>) {
+        return response;
       }
-
-      return jsonDecode(response.data as String) as Map<String, dynamic>;
+      return {'success': true, 'action': 'reclaimed'};
     } catch (e) {
       debugPrint('reclaimDelivery error: $e');
       rethrow;
@@ -124,15 +122,6 @@ class OfferService {
     } catch (e) {
       debugPrint('getDeliveryStatus error: $e');
       return null;
-    }
-  }
-
-  /// Trigger expired offer check via Edge Function
-  Future<void> checkExpiredOffers() async {
-    try {
-      await _client.functions.invoke('check-expired-offers', body: {});
-    } catch (e) {
-      debugPrint('checkExpiredOffers error: $e');
     }
   }
 }
